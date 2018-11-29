@@ -1,6 +1,6 @@
 // Copyright 2018 the Deno authors. All rights reserved. MIT license.
 // We need to make sure this module loads, for its side effects.
-import "./globals";
+import { window } from "./globals";
 
 import * as flatbuffers from "./flatbuffers";
 import * as msg from "gen/msg_generated";
@@ -54,8 +54,7 @@ function onGlobalError(
   os.exit(1);
 }
 
-/* tslint:disable-next-line:no-default-export */
-export default function denoMain() {
+function denoMain() {
   libdeno.recv(handleAsyncMsgFromRust);
   libdeno.setGlobalErrorHandler(onGlobalError);
   libdeno.setPromiseRejectHandler(promiseRejectHandler);
@@ -102,3 +101,7 @@ export default function denoMain() {
     replLoop();
   }
 }
+
+// TODO(ry) denoMain needs to be accessable to src/main.rs - is there a way to do
+// this without adding it to the global scope?
+window["denoMain"] = denoMain;

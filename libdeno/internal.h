@@ -13,14 +13,16 @@ namespace deno {
 // deno_s = Wrapped Isolate.
 class DenoIsolate {
  public:
-  DenoIsolate(deno_buf snapshot, deno_recv_cb cb, deno_buf shared)
+  DenoIsolate(deno_buf snapshot, deno_recv_cb recv_cb,
+              deno_resolve_cb resolve_cb, deno_buf shared)
       : isolate_(nullptr),
         shared_(shared),
         current_args_(nullptr),
         snapshot_creator_(nullptr),
         global_import_buf_ptr_(nullptr),
         pending_promise_events_(0),
-        cb_(cb),
+        recv_cb_(recv_cb),
+        resolve_cb_(resolve_cb),
         next_req_id_(0),
         user_data_(nullptr) {
     if (snapshot.data_ptr) {
@@ -30,6 +32,8 @@ class DenoIsolate {
   }
 
   void AddIsolate(v8::Isolate* isolate);
+  void RegisterModule(const char* filename, v8::Local<v8::Module> module);
+  void ClearModules();
 
   v8::Isolate* isolate_;
   deno_buf shared_;
@@ -37,9 +41,15 @@ class DenoIsolate {
   v8::SnapshotCreator* snapshot_creator_;
   void* global_import_buf_ptr_;
   int32_t pending_promise_events_;
-  deno_recv_cb cb_;
+  deno_recv_cb recv_cb_;
+  deno_resolve_cb resolve_cb_;
   int32_t next_req_id_;
   void* user_data_;
+
+  // identity hash -> filename
+  std::map<int, std::string> module_filename_map_;
+  // filename -> Module
+  std::map<std::string, v8::Persistent<v8::Module>> module_map_;
 
   v8::Persistent<v8::Context> context_;
   std::map<int32_t, v8::Persistent<v8::Value>> async_data_map_;

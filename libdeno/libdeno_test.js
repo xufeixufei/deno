@@ -3,7 +3,13 @@
 // A simple runtime that doesn't involve typescript or protobufs to test
 // libdeno. Invoked by libdeno_test.cc
 
-const global = this;
+// If you use the eval function indirectly, by invoking it via a reference
+// other than eval, as of ECMAScript 5 it works in the global scope rather than
+// the local scope. This means, for instance, that function declarations create
+// global functions, and that the code being evaluated doesn't have access to
+// local variables within the scope where it's being called.
+const globalEval = eval;
+const global = globalEval("this");
 
 function assert(cond) {
   if (!cond) throw Error("libdeno_test.js assert failed");

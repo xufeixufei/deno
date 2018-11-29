@@ -25,15 +25,25 @@ typedef struct deno_s Deno;
 typedef void (*deno_recv_cb)(void* user_data, int32_t req_id,
                              deno_buf control_buf, deno_buf data_buf);
 
+struct deno_module {
+  const char* filename;
+  const char* source;
+};
+
+typedef struct deno_module (*deno_resolve_cb)(void* user_data,
+                                              const char* specifier,
+                                              const char* referrer);
+
 void deno_init();
 const char* deno_v8_version();
 void deno_set_v8_flags(int* argc, char** argv);
 
-Deno* deno_new(deno_buf snapshot, deno_buf shared, deno_recv_cb cb);
+Deno* deno_new(deno_buf snapshot, deno_buf shared, deno_recv_cb recv_cb,
+               deno_resolve_cb resolve_cb);
 
-Deno* deno_new_snapshotter(deno_buf shared, deno_recv_cb cb,
-                           const char* js_filename, const char* js_source,
-                           const char* source_map);
+Deno* deno_new_snapshotter(deno_buf shared, deno_recv_cb recv_cb,
+                           deno_resolve_cb resolve_cb, const char* js_filename,
+                           const char* js_source, const char* source_map);
 deno_buf deno_get_snapshot(Deno* d);
 
 void deno_delete(Deno* d);

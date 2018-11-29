@@ -13,8 +13,10 @@
 
 extern "C" {
 
-Deno* deno_new(deno_buf snapshot, deno_buf shared, deno_recv_cb cb) {
-  deno::DenoIsolate* d = new deno::DenoIsolate(snapshot, cb, shared);
+Deno* deno_new(deno_buf snapshot, deno_buf shared, deno_recv_cb cb,
+               deno_resolve_cb resolve_cb) {
+  deno::DenoIsolate* d =
+      new deno::DenoIsolate(snapshot, cb, resolve_cb, shared);
   v8::Isolate::CreateParams params;
   params.array_buffer_allocator =
       v8::ArrayBuffer::Allocator::NewDefaultAllocator();
@@ -48,11 +50,11 @@ Deno* deno_new(deno_buf snapshot, deno_buf shared, deno_recv_cb cb) {
 }
 
 Deno* deno_new_snapshotter(deno_buf shared, deno_recv_cb cb,
-                           const char* js_filename, const char* js_source,
-                           const char* source_map) {
+                           deno_resolve_cb resolve_cb, const char* js_filename,
+                           const char* js_source, const char* source_map) {
   auto* creator = new v8::SnapshotCreator(deno::external_references);
   auto* isolate = creator->GetIsolate();
-  auto* d = new deno::DenoIsolate(deno::empty_buf, cb, shared);
+  auto* d = new deno::DenoIsolate(deno::empty_buf, cb, resolve_cb, shared);
   d->snapshot_creator_ = creator;
   d->AddIsolate(isolate);
   v8::Isolate::Scope isolate_scope(isolate);
@@ -75,6 +77,11 @@ deno::DenoIsolate* unwrap(Deno* d_) {
 deno_buf deno_get_snapshot(Deno* d_) {
   auto* d = unwrap(d_);
   CHECK_NE(d->snapshot_creator_, nullptr);
+
+  // Clear the module map. Work around error
+  // global handle not serialized: 0x26238e79c049 <Module>
+  d->ClearModules();
+
   auto blob = d->snapshot_creator_->CreateBlob(
       v8::SnapshotCreator::FunctionCodeHandling::kClear);
   return {nullptr, 0, reinterpret_cast<uint8_t*>(const_cast<char*>(blob.data)),
