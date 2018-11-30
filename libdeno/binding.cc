@@ -143,12 +143,8 @@ void HandleException(v8::Local<v8::Context> context,
   DenoIsolate* d = FromIsolate(isolate);
   std::string exception_str;
   HandleExceptionStr(context, exception, &exception_str);
-  if (d != nullptr) {
-    d->last_exception_ = exception_str;
-  } else {
-    std::cerr << "Pre-Deno Exception " << exception_str << std::endl;
-    exit(1);
-  }
+  CHECK(d != nullptr);
+  d->last_exception_ = exception_str;
 }
 
 const char* PromiseRejectStr(enum v8::PromiseRejectEvent e) {
@@ -550,6 +546,11 @@ void InitializeContext(v8::Isolate* isolate, v8::Local<v8::Context> context,
         deno_val->Set(context, deno::v8_str("mainSource"), source).FromJust());
 
     bool r = deno::ExecuteV8StringSource(context, js_filename, source);
+    if (!r) {
+      DenoIsolate* d = FromIsolate(isolate);
+      std::cerr << "Pre-Deno Exception " << d->last_exception_ << std::endl;
+      exit(1);
+    }
     CHECK(r);
   }
 }
