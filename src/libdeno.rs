@@ -18,6 +18,13 @@ pub struct deno_buf {
   pub data_len: usize,
 }
 
+#[repr(C)]
+#[derive(Clone, PartialEq)]
+pub struct deno_module {
+  pub filename: *const c_char,
+  pub source: *const c_char,
+}
+
 impl deno_buf {
   pub fn empty() -> Self {
     deno_buf {
@@ -36,6 +43,12 @@ type DenoRecvCb = unsafe extern "C" fn(
   data_buf: deno_buf,
 );
 
+type ResolveCb = unsafe extern "C" fn(
+  user_data: *mut c_void,
+  specifier: *const c_char,
+  referrer: *const c_char,
+) -> deno_module;
+
 extern "C" {
   pub fn deno_init();
   pub fn deno_v8_version() -> *const c_char;
@@ -43,7 +56,8 @@ extern "C" {
   pub fn deno_new(
     snapshot: deno_buf,
     shared: deno_buf,
-    cb: DenoRecvCb,
+    recv_cb: DenoRecvCb,
+    resolve_cb: Option<ResolveCb>,
   ) -> *const isolate;
   pub fn deno_delete(i: *const isolate);
   pub fn deno_last_exception(i: *const isolate) -> *const c_char;

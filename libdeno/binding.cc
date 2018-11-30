@@ -491,34 +491,34 @@ v8::MaybeLocal<v8::Module> ResolveCallback(v8::Local<v8::Context> context,
 
   v8::String::Utf8Value specifier_(isolate, specifier);
   const char* specifier_c = ToCString(specifier_);
-  printf("ResolveCallback %s %s\n", specifier_c, ref_filename.c_str());
+  // printf("ResolveCallback %s %s\n", specifier_c, ref_filename.c_str());
 
+  CHECK_NE(d->resolve_cb_, nullptr);
   deno_module m =
       d->resolve_cb_(d->user_data_, specifier_c, ref_filename.c_str());
 
   if (m.filename == nullptr) {
     // Resolution Error.
     CHECK_EQ(m.source, nullptr);
-    printf("ResolveCallback resolution error\n");
+    // printf("ResolveCallback resolution error\n");
     return v8::MaybeLocal<v8::Module>();
   } else {
     auto count = d->module_map_.count(m.filename);
     if (count == 1) {
-      printf("ResolveCallback found existing %s\n", m.filename);
+      // printf("ResolveCallback found existing %s\n", m.filename);
       auto submodule = d->module_map_[m.filename].Get(d->isolate_);
       return handle_scope.Escape(submodule);
     } else {
       CHECK_EQ(count, 0);
-      printf("ResolveCallback newly compiled submodule %s\n", m.filename);
+      // printf("ResolveCallback newly compiled submodule %s\n", m.filename);
       v8::TryCatch try_catch(isolate);
 
-      auto maybe_submodule =
-          CompileModule(context, m.filename, v8_str(m.source));
+      auto maybe_submodule = CompileModule(context, m.filename, v8_str(m.source));
 
       if (maybe_submodule.IsEmpty()) {
         DCHECK(try_catch.HasCaught());
         HandleException(context, try_catch.Exception());
-        printf("Error InstantiateModule %s\n", d->last_exception_.c_str());
+        // printf("Error InstantiateModule %s\n", d->last_exception_.c_str());
       }
 
       return handle_scope.EscapeMaybe(maybe_submodule);
@@ -555,7 +555,7 @@ bool ExecuteV8StringSource(v8::Local<v8::Context> context,
   auto result = module->Evaluate(context);
 
   if (result.IsEmpty()) {
-    printf("Exception while evaluating module %s\n", js_filename);
+    // printf("Exception while evaluating module %s\n", js_filename);
     DCHECK(try_catch.HasCaught());
     CHECK_EQ(v8::Module::kErrored, module->GetStatus());
     HandleException(context, module->GetException());
